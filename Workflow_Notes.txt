@@ -1,0 +1,17 @@
+Workflow is basically the same
+    take input
+    do some checking
+    add to the database
+    give some output
+
+Documentation - Luis, Malgorzarta
+
+Coding/Development
+    Gathering input - Max,Rita
+    Validation of input - Francois, Hannah
+    Reconcile/Validate taxon names - Martina, Carlos
+    Storing the trees in the DB - Kessy, Anna Maria
+
+    Putting it all together - Miguel, Jason
+
+Testing - Ivo, Filpa
