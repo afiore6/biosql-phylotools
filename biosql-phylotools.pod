@@ -1,0 +1,329 @@
+$Id: README,v 1.00  2009/07/19 $
+README FILE 
+
+Project  “biosql-phylotools”,   this is a colaborative project of participants of the PHYLINF09 course.
+ 
+You may distribute this module under the same terms as perl itself.
+ Refer to the Perl Artistic License (see the license accompanying this
+ software package, or see http://www.perl.com/language/misc/Artistic.html)
+for the terms under which you may use, modify, and redistribute this module.
+
+=head1 NAME 
+
+biosql-phylotools loading trees and data matrices into Biosql database
+
+=head1 SYNOPSIS
+
+This script loads a Biosql database with phylogenetic trees (and data matrices). Minimal data to be provided form command line: --dbname $db_name,  --dbuser $username, --dbpass $password, --driver $driver, --filename $input_filename, --output $output_filename
+
+=head1 DESCRIPTION  
+
+This script loads a Biosql database with phylogenetic trees (and data matrices).
+
+First are  the options related to localization and accessing database, then format and namespace of the input files.  These can be followed by multiple file names.  The files are assumed to be
+formatted identically with the format given by the --format flag.
+See below for more details.
+
+=head1 ARGUMENTS 
+
+The arguments after the named options constitute the filelist. If
+there are no such files, input is read from stdin. Default values for
+each parameter are shown in square brackets. Note that --bulk is no
+longer available.
+
+=over 2
+
+=item --host $URL
+
+The host name or IP address incl. port. The default is undefined,
+which will get interpreted differently depending on the driver. E.g.,
+the mysql driver will assume localhost if host is undefined; the
+PostgreSQL driver will use a local (file-)socket connection to the
+local host, whereas it will use a TCP socket (which has to be enabled
+separately when starting the postmaster) if you specify 'localhost';
+the Oracle driver doesn't need (or may even get confused by) a host
+name if the local tnsnames.ora can properly resolve the SID, which
+would be specified using --dbname.
+
+=item --port $port
+
+the port to which to connect; usually the default port chosen by the
+driver will be appropriate. 
+
+=item --dbname $db_name
+
+the name of the schema [biosql]
+
+=item --dbuser $username
+
+database username [root]
+
+=item --dbpass $password
+
+password [undef]
+
+=item --driver $driver
+
+the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [Pg]
+
+=item --dsn dsn
+
+Instead of providing the database connection and driver parameters
+individually, you may also specify the DBI-formatted DSN that is to be
+used verbatim for connecting to the database. Note that if you do give
+individual parameters in addition they will not supplant what is in
+the DSN string. Hence, the only database-related parameter that may be
+useful to specify in addition is --driver, as that is used also for
+selecting the driver-specific adaptors that generate SQL
+code. Usually, the driver will be parsed out from the DSN though and
+therefore will be set as well by setting the DSN.
+
+Consult the POD of your DBI driver for how to properly format the DSN
+for it. A typical example is dbi:Pg:dbname=biosql;host=foo.bar.edu
+(for PostgreSQL). Note that the DSN will be specific to the driver
+being used.
+
+=item --initrc paramfile
+
+Instead of, or in addition to, specifying every individual database
+connection parameter you may put them into a file that when read by
+perl evaluates to an array or hash reference. This option specifies
+the file to read; the special value DEFAULT (or no value) will use a
+file ./.bioperldb or $HOME/.bioperldb, whichever is found first in
+that order.
+
+Constructing a file that evaluates to a hash reference is very
+simple. The first non-space character needs to be an open curly brace,
+and the last non-space character a closing curly brace. In between the
+curly braces, write option name enclosed in single quotes, followed by
+=> (equal to or greater than), followed by the value in single
+quotes. Separate each such option/value pair by comma. Here is an
+example:
+
+{ 
+    '-dbname' => 'mybiosql', '-host' => 'foo.bar.edu', '-user' => 'cleo' 
+}
+
+Line breaks and white space don't matter (except if in the value
+itself). Also note that options only have a single dash as prefix, and
+they need to be those accepted by Bio::DB::BioDB->new()
+(L<Bio::DB::BioDB>) or Bio::DB::SimpleDBContext->new()
+(L<Bio::DB::SimpleDBContext>). Those sometimes differ slightly from the
+option names used by this script, e.g., --dbuser corresponds to -user.
+
+Note also that using the above example, you can use it for --initrc
+and still connect as user caesar by also supplying --dbuser caesar on
+the command line. I.e., command line arguments override any parameters
+also found in the initrc file.
+
+Finally, note that if using this option with default file name and the
+default file is not found at any of the default locations, the option
+will be ignored; it is not considered an error.
+
+=item --namespace $namesp
+
+The namespace under which the trees in the input files are to be
+created in the database. Note that the namespace will be
+left untouched if the object to be submitted has it set already [bioperl].
+
+=item --lookup
+
+flag to look-up by unique key first, converting the insert into an
+update if the object is found
+
+=item --flatlookup
+
+Similar to --lookup, but only the 'flat' row for the object is looked
+up, meaning no children will be fetched and attached to the
+object. This is potentially much faster than a full recursive object
+retrieval, but as a result the retrieved object lacks all association
+properties (e.g., a flat Bio::SeqI object would lack all features and
+all annotation, but still have display_id, accession, version
+etc.). This option is therefore most useful if you want to delete
+found objects (--remove), as then any time spent on retrieving more
+than the row together with the primary key is wasted.
+
+=item --noupdate
+
+don't update if object is found (with --lookup)
+
+=item --remove
+
+flag to remove trees before actually adding them (this
+necessitates a prior lookup)
+
+=item --safe
+
+flag to continue despite errors when loading (the entire object
+transaction will still be rolled back)
+
+=item --testonly
+
+don't commit anything, rollback at the end
+
+﻿=item --format 
+
+This may theoretically be any IO subsytem and the format understood by 
+that subsystem to parse the input file(s). IO subsytem and format must 
+be separated by a double colon. See below for which subsystems are 
+currently supported. 
+
+The default IO subsystem is TreeIO. 'Bio::' will automatically be 
+prepended if not already present. As of now the other supported 
+subsystem is ClusterIO. All input files must have the same format. 
+
+
+format used by Bio::TreeIO: 
+     #newick             Newick tree format 
+     #nexus               Nexus tree format 
+     #nhx                  NHX tree format 
+     #svggraph         SVG graphical representation of tree 
+     #tabtree            ASCII text representation of tree 
+     #lintree             lintree output format
+
+=item --fmtargs 
+
+Use this argument to specify initialization parameters for the parser 
+for the input format. The argument value is expected to be a string 
+with parameter names and values delimited by commas. 
+
+Usually you will want to protect the argument list from interpretation 
+by the shell, so surround it with double or single quotes. 
+
+If a parameter value contains a comma, escape it with a backslash 
+(which means you also must protect the whole argument from the shell 
+in order to preserve the backslash) 
+
+Examples: 
+
+    # turn parser exceptions into warnings (don't try this at home) 
+    --fmtargs "-verbose,-1" 
+    # verbose parser with an additional path argument 
+    --fmtargs "-verbose,1,-indexpath,/home/luke/warp" 
+    # escape commas in values 
+    --fmtargs "-myspecialchar,\," 
+
+=item --pipeline 
+
+This is a sequence of Bio::Factory::SeqProcessorI (see 
+L<Bio::Factory::SeqProcessorI>) implementing objects that will be 
+instantiated and chained in exactly this order. This allows you to 
+write re-usable modules for custom post-processing of objects after 
+the stream parser returns them. See L<Bio::Seq::BaseSeqProcessor> for 
+a base implementation for such modules. 
+
+Modules are separated by the pipe character '|'. In addition, you can 
+specify initialization parameters for each of the modules by enclosing 
+a comma-separated list of alternating parameter name and value pairs 
+in parentheses or angle brackets directly after the module. 
+
+This option will be ignored if no value is supplied. 
+
+Examples: 
+    # one module 
+    --pipeline "My::SeqProc" 
+    # two modules in the specified order 
+    --pipeline "My::SeqProc|My::SecondSeqProc" 
+    # two modules, the first of which has two initialization parameters 
+    --pipeline "My::SeqProc(-maxlength,1500,-minlength,300)|My::SecondProc" 
+
+=item --seqfilter 
+
+This is either a string or a file defining a closure to be used as 
+sequence filter. The value is interpreted as a file if it refers to a 
+readable file, and a string otherwise. See add_condition() in 
+L<Bio::Seq::SeqBuilder> for more information about what the code will 
+be used for. The closure will be passed a hash reference with an 
+accumulated list of initialization paramaters for the prospective 
+object. It returns TRUE if the object is to be built and FALSE 
+otherwise. 
+
+Note that this closure operates at the stream parser level. Objects it 
+rejects will be skipped by the parser. Objects it accepts can still be 
+intercepted at a later stage (options --remove, --update, --noupdate, 
+--mergeobjs). 
+
+Note that not necessarily all stream parsers support a 
+Bio::Factory::ObjectBuilderI (see L<Bio::Factory::ObjectBuilderI>) 
+object. Email bioperl-l@bioperl.org to find out which ones do. In 
+fact, at the time of writing this, only Bio::SeqIO::genbank supports 
+it. 
+
+This option will be ignored if no value is supplied. 
+
+=item --mergeobjs 
+
+This is also a string or a file defining a closure. If provided, the 
+closure is called if a look-up for the unique key of the new object 
+was successful. Hence, it will never be called without supplying 
+--lookup at the same time. 
+
+Note that --noupdate will B<not> prevent the closure from being 
+called. I.e., if you make changes to the database in your merge script 
+as opposed to only modifying the object, --noupdate will B<not> 
+prevent those changes. This is a feature, not a bug. Obviously, 
+modifications to the in-memory object will have no effect with 
+--noupdate since the database won't be updated with it. 
+
+The closure will be passed three arguments: the object found by 
+lookup, the new object to be submitted, and the Bio::DB::DBAdaptorI 
+(see L<Bio::DB::DBAdaptorI>) implementing object for the desired 
+database. If the closure returns a value, it must be the object to be 
+inserted or updated in the database (if $obj->primary_key returns a 
+value, the object will be updated). If it returns undef, the script 
+will skip to the next object in the input stream. 
+
+The purpose of the closure can be manifold. It was originally 
+conceived as a means to customarily merge attributes or associated 
+objects of the new object to the existing (found) one in order to 
+avoid duplications but still capture additional information (e.g., 
+annotation). However, there is a multitude of other operations it can 
+be used for, like physically deleting or altering certain associated 
+information from the database (the found object and all its associated 
+objects will implement Bio::DB::PersistentObjectI, see 
+L<Bio::DB::PersistentObjectI>). Since the third argument is the 
+persistent object and adaptor factory for the database, there is 
+literally no limit as to the database operations the closure could 
+possibly do.
+
+This option will be ignored if no value is supplied. 
+
+=item --logchunk 
+
+If supplied with an integer argument n greater than zero, progress 
+will be logged to stderr every n entries of the input file(s). Default 
+is no progress logging. 
+
+=item --debug 
+
+Turn on verbose and debugging mode. This will produce a *lot* of 
+logging output, hence you will want to capture the output in a 
+file. This option is useful if you get some mysterious failure 
+somewhere in the events of loading or updating a record, and you would 
+like to see, e.g., precisely which SQL statement fails. Usually you 
+turn on this option because you've been asked to do so by a person 
+responding after you posted your problem to the Bioperl mailing list. 
+
+=item -u, -z, or --uncompress 
+
+Uncompress the input file(s) on-the-fly by piping them through 
+gunzip. Gunzip must be in your path for this option to work. 
+
+out put arguments ? 
+these arguments are necessary for correct output naming and storage 
+=item  --output_filename 
+
+=item more args 
+
+The remaining arguments will be treated as files to parse and load. If 
+there are no additional arguments, input is expected to come from 
+standard input. 
+
+=back
+
+=head1 ERROR 
+
+error 1: the file name does not match file handled by project and/or file cannot be open, check the file name and type
+error 2: “file name”, “dbname”,  “x”; data not  provided from the command line 
+
+=cut
