@@ -22,3 +22,10 @@ my $blocks = parse(
 );
 
 #need validation of input treefile (missing)
+	#nexml
+	#newick             Newick tree format
+    #nexus               Nexus tree format
+    #nhx                  NHX tree format
+    #svggraph         SVG graphical representation of tree
+    #tabtree            ASCII text representation of tree
+    #lintree             lintree output format 
